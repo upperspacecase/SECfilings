@@ -109,7 +109,8 @@ export async function pollEdgar(existingAccessions = new Set()) {
  */
 async function enrichFromXml(accessionNumber, cik) {
     const adshNoDash = accessionNumber.replace(/-/g, "");
-    const xmlUrl = `https://www.sec.gov/Archives/edgar/data/${cik}/${adshNoDash}/primary_doc.xml`;
+    const cleanCik = cik.replace(/^0+/, ""); // Strip leading zeros
+    const xmlUrl = `https://www.sec.gov/Archives/edgar/data/${cleanCik}/${adshNoDash}/primary_doc.xml`;
 
     const res = await fetch(xmlUrl, {
         headers: { "User-Agent": USER_AGENT },

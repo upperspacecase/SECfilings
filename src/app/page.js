@@ -158,7 +158,7 @@ export default function LandingPage() {
                 <ul className="space-y-3 text-sm mb-8">
                   {[
                     "Unlimited alert rules",
-                    "Real-time email alerts (~2 min latency)",
+                    "Real-time email alerts",
                     "All Form D & D/A filings",
                     "Advanced filters & watchlists",
                     "Person & company tracking",
