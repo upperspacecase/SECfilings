@@ -46,7 +46,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
                 <div className="card !p-3 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
                     <div className="flex items-center justify-between mb-2">
                         <span className="badge badge-accent text-[10px]">PRO</span>
-                        <span className="text-xs text-[var(--color-text-muted)]">$149/mo</span>
+                        <span className="text-xs text-[var(--color-text-muted)]">$700/mo</span>
                     </div>
                     <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
                         Unlimited rules · Real-time alerts
@@ -62,8 +62,8 @@ function SidebarItem({ icon, label, active, onClick, badge }) {
         <button
             onClick={onClick}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${active
-                    ? "bg-[var(--color-accent-glow)] text-[var(--color-accent)] border border-indigo-500/20"
-                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-card)] hover:text-[var(--color-text-primary)] border border-transparent"
+                ? "bg-[var(--color-accent-glow)] text-[var(--color-accent)] border border-indigo-500/20"
+                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-card)] hover:text-[var(--color-text-primary)] border border-transparent"
                 }`}
         >
             {icon}

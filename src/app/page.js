@@ -76,7 +76,7 @@ export default function LandingPage() {
               { value: "~2 min", label: "Alert latency" },
               { value: "50K+", label: "Form D filings/year" },
               { value: "24/7", label: "EDGAR monitoring" },
-              { value: "$0", label: "To start" },
+              { value: "100%", label: "Form D coverage" },
             ].map((stat) => (
               <div key={stat.label}>
                 <div className="text-2xl md:text-3xl font-bold text-[var(--color-accent)]">
@@ -138,49 +138,19 @@ export default function LandingPage() {
         <section className="bg-[var(--color-bg-secondary)] border-y border-[var(--color-border-subtle)] py-24">
           <div className="max-w-4xl mx-auto px-6">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-              Simple pricing
+              One plan. Full access.
             </h2>
             <p className="text-[var(--color-text-secondary)] text-center mb-16 max-w-lg mx-auto">
-              Start free. Upgrade when you need real-time speed.
+              Everything you need to monitor Form D filings in real time.
             </p>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-              {/* Free tier */}
-              <div className="card">
-                <div className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-4">
-                  Free
-                </div>
-                <div className="text-4xl font-bold mb-1">$0</div>
-                <div className="text-sm text-[var(--color-text-muted)] mb-6">
-                  forever
-                </div>
-                <ul className="space-y-3 text-sm mb-8">
-                  {[
-                    "1 alert rule",
-                    "Hourly email digest",
-                    "All Form D filings",
-                    "Basic filters",
-                  ].map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-[var(--color-text-secondary)]">
-                      <span className="text-[var(--color-success)]">✓</span> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/dashboard" className="btn btn-secondary w-full">
-                  Get Started
-                </Link>
-              </div>
-
-              {/* Pro tier */}
+            <div className="max-w-md mx-auto">
               <div className="card relative border-indigo-500/30 bg-gradient-to-b from-[var(--color-bg-card)] to-indigo-950/20">
-                <div className="absolute -top-3 right-6">
-                  <span className="badge badge-accent">POPULAR</span>
-                </div>
                 <div className="text-sm font-semibold text-[var(--color-accent)] uppercase tracking-wider mb-4">
-                  Pro
+                  FilingPulse Pro
                 </div>
                 <div className="text-4xl font-bold mb-1">
-                  $149<span className="text-lg font-normal text-[var(--color-text-muted)]">/mo</span>
+                  $700<span className="text-lg font-normal text-[var(--color-text-muted)]">/mo</span>
                 </div>
                 <div className="text-sm text-[var(--color-text-muted)] mb-6">
                   billed monthly
@@ -188,11 +158,11 @@ export default function LandingPage() {
                 <ul className="space-y-3 text-sm mb-8">
                   {[
                     "Unlimited alert rules",
-                    "Real-time email alerts (~2 min)",
-                    "All Form D filings",
+                    "Real-time email alerts (~2 min latency)",
+                    "All Form D & D/A filings",
                     "Advanced filters & watchlists",
                     "Person & company tracking",
-                    "Priority support",
+                    "Dedicated support",
                   ].map((f) => (
                     <li key={f} className="flex items-center gap-2 text-[var(--color-text-secondary)]">
                       <span className="text-[var(--color-accent)]">✓</span> {f}
@@ -200,7 +170,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link href="/dashboard" className="btn btn-primary w-full">
-                  Start Free Trial
+                  Get Started
                 </Link>
               </div>
             </div>
