@@ -1,99 +1,187 @@
-import { parseFormDXml } from "./parser";
+/**
+ * EDGAR Poller — fetches recent Form D filings from SEC EDGAR EFTS
+ *
+ * Uses the EFTS search-index endpoint:
+ *   https://efts.sec.gov/LATEST/search-index?q=&forms=D
+ *
+ * Then optionally enriches each filing by fetching the Form D XML.
+ */
 
-const EFTS_BASE = "https://efts.sec.gov/LATEST/search-index";
-const EDGAR_ARCHIVES = "https://www.sec.gov/Archives/edgar/data";
 const USER_AGENT =
     process.env.EDGAR_USER_AGENT || "FilingPulse admin@filingpulse.com";
 
 /**
- * Poll EDGAR for recent Form D filings.
- * Returns an array of normalized filing objects (new ones only).
- * @param {Set<string>} existingAccessions - Set of accession numbers already in our DB
- * @returns {Promise<object[]>}
+ * Poll EDGAR for new Form D filings
+ * @param {Set<string>} existingAccessions - accession numbers already in DB
+ * @returns {Array} Array of filing objects ready to insert into MongoDB
  */
 export async function pollEdgar(existingAccessions = new Set()) {
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const fmt = (d) => d.toISOString().split("T")[0];
+    const filings = [];
 
-    const url = `${EFTS_BASE}?q=%22*%22&forms=D,D/A&dateRange=custom&startdt=${fmt(
-        yesterday
-    )}&enddt=${fmt(now)}&from=0&size=40`;
+    try {
+        // Fetch latest Form D filings from EFTS (last 7 days by default)
+        const today = new Date();
+        const weekAgo = new Date(today);
+        weekAgo.setDate(today.getDate() - 7);
 
-    const res = await fetch(url, {
-        headers: {
-            "User-Agent": USER_AGENT,
-            Accept: "application/json",
-        },
-    });
+        const startdt = weekAgo.toISOString().split("T")[0];
+        const enddt = today.toISOString().split("T")[0];
 
-    if (!res.ok) {
-        console.error(`EFTS returned ${res.status}`);
-        return [];
-    }
+        const url = `https://efts.sec.gov/LATEST/search-index?q=&forms=D&dateRange=custom&startdt=${startdt}&enddt=${enddt}`;
 
-    const data = await res.json();
-    const hits = data.hits?.hits || data.hits || [];
+        const res = await fetch(url, {
+            headers: {
+                "User-Agent": USER_AGENT,
+                Accept: "application/json",
+            },
+        });
 
-    const newFilings = [];
-
-    for (const hit of hits) {
-        const source = hit._source || hit;
-        const accession = source.file_num || source.accession_no || "";
-        const cleaned = accession.replace(/-/g, "");
-
-        if (existingAccessions.has(accession) || existingAccessions.has(cleaned)) {
-            continue;
+        if (!res.ok) {
+            console.error(`EFTS API error: ${res.status} ${res.statusText}`);
+            return filings;
         }
 
-        try {
-            const xmlUrl = await resolveXmlUrl(source);
-            if (!xmlUrl) continue;
+        const data = await res.json();
+        const hits = data.hits?.hits || [];
 
-            const xmlRes = await fetch(xmlUrl, {
-                headers: { "User-Agent": USER_AGENT },
-            });
-            if (!xmlRes.ok) continue;
+        console.log(
+            `EFTS returned ${hits.length} filings (total: ${data.hits?.total?.value})`
+        );
 
-            const xml = await xmlRes.text();
-            const filing = await parseFormDXml(xml, {
-                accessionNumber: accession,
-                filedAt: source.file_date || source.filing_date,
-                formType: source.form_type || "D",
-                rawXmlUrl: xmlUrl,
-                cik: source.entity_id || source.cik || "",
-                entityName: source.entity_name || source.display_names?.[0] || "",
-                edgarUrl: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${source.entity_id || source.cik || ""
-                    }`,
-            });
+        for (const hit of hits) {
+            const src = hit._source;
+            const accessionNumber = src.adsh;
 
-            newFilings.push(filing);
-        } catch (err) {
-            console.error(`Failed to parse filing ${accession}:`, err.message);
+            // Skip if we already have this filing
+            if (existingAccessions.has(accessionNumber)) {
+                continue;
+            }
+
+            const cik = src.ciks?.[0] || "";
+            const entityName =
+                src.display_names?.[0]?.replace(/\s*\(CIK.*\)/, "") || "Unknown";
+
+            // Build filing from EFTS data
+            const filing = {
+                accessionNumber,
+                cik,
+                entityName,
+                formType: src.form || "D",
+                filedAt: new Date(src.file_date),
+                sicCode: src.sics?.[0] || null,
+                stateOfIncorporation: src.inc_states?.[0] || null,
+                statesOfSolicitation: src.biz_states || [],
+                entityType: null,
+                industryGroupType: null,
+                totalOfferingAmount: null,
+                totalAmountSold: null,
+                totalRemaining: null,
+                minimumInvestmentAccepted: null,
+                isPooledInvestmentFund: false,
+                relatedPersons: [],
+                edgarUrl: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=D&dateb=&owner=include&count=10`,
+            };
+
+            // Try to enrich with Form D XML
+            try {
+                const enriched = await enrichFromXml(accessionNumber, cik);
+                if (enriched) {
+                    Object.assign(filing, enriched);
+                }
+            } catch (err) {
+                // XML enrichment is optional, continue with EFTS data
+                console.warn(
+                    `XML enrichment failed for ${accessionNumber}: ${err.message}`
+                );
+            }
+
+            filings.push(filing);
         }
+    } catch (err) {
+        console.error("EDGAR poll failed:", err);
     }
 
-    return newFilings;
+    return filings;
 }
 
-async function resolveXmlUrl(source) {
-    const cik = source.entity_id || source.cik || "";
-    const accession = (source.accession_no || "").replace(/-/g, "");
-    if (!cik || !accession) return null;
+/**
+ * Fetch and parse the Form D XML for richer data
+ */
+async function enrichFromXml(accessionNumber, cik) {
+    const adshNoDash = accessionNumber.replace(/-/g, "");
+    const xmlUrl = `https://www.sec.gov/Archives/edgar/data/${cik}/${adshNoDash}/primary_doc.xml`;
 
-    const indexUrl = `${EDGAR_ARCHIVES}/${cik}/${accession}/`;
-    try {
-        const res = await fetch(indexUrl, {
-            headers: { "User-Agent": USER_AGENT },
-        });
-        if (!res.ok) return null;
-        const html = await res.text();
-        const match = html.match(/href="([^"]*primary_doc\.xml)"/i);
-        if (match) return `${indexUrl}${match[1]}`;
+    const res = await fetch(xmlUrl, {
+        headers: { "User-Agent": USER_AGENT },
+    });
 
-        const xmlMatch = html.match(/href="([^"]*\.xml)"/i);
-        return xmlMatch ? `${indexUrl}${xmlMatch[1]}` : null;
-    } catch {
+    if (!res.ok) return null;
+
+    const xml = await res.text();
+    if (!xml.includes("<offeringData>") && !xml.includes("<edgarSubmission>")) {
         return null;
     }
+
+    // Quick XML parsing without xml2js (regex-based for speed)
+    const enriched = {};
+
+    const getVal = (tag) => {
+        const m = xml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
+        return m ? m[1].trim() : null;
+    };
+
+    const totalOffering = getVal("totalOfferingAmount");
+    if (totalOffering) enriched.totalOfferingAmount = parseFloat(totalOffering);
+
+    const totalSold = getVal("totalAmountSold");
+    if (totalSold) enriched.totalAmountSold = parseFloat(totalSold);
+
+    const totalRemaining = getVal("totalRemaining");
+    if (totalRemaining) enriched.totalRemaining = parseFloat(totalRemaining);
+
+    const minInvestment = getVal("minimumInvestmentAccepted");
+    if (minInvestment)
+        enriched.minimumInvestmentAccepted = parseFloat(minInvestment);
+
+    const isPooled = getVal("isPooledInvestmentFundType");
+    enriched.isPooledInvestmentFund = isPooled === "Y";
+
+    const entityType = getVal("entityType");
+    if (entityType) enriched.entityType = entityType;
+
+    const industryGroup = getVal("industryGroupType");
+    if (industryGroup) enriched.industryGroupType = industryGroup;
+
+    // Parse related persons
+    const personMatches = xml.matchAll(
+        /<relatedPersonInfo>([\s\S]*?)<\/relatedPersonInfo>/g
+    );
+    const persons = [];
+    for (const m of personMatches) {
+        const block = m[1];
+        const get = (tag) => {
+            const r = block.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
+            return r ? r[1].trim() : null;
+        };
+
+        const firstName = get("relatedPersonName>first") || get("firstName");
+        const lastName = get("relatedPersonName>last") || get("lastName");
+
+        if (firstName || lastName) {
+            const relationships = [];
+            if (block.includes("<isDirector>true</isDirector>"))
+                relationships.push("Director");
+            if (block.includes("<isOfficer>true</isOfficer>"))
+                relationships.push("Officer");
+            if (block.includes("<isPromoter>true</isPromoter>"))
+                relationships.push("Promoter");
+            if (block.includes("<isTenPercentOwner>true</isTenPercentOwner>"))
+                relationships.push("10% Owner");
+
+            persons.push({ firstName, lastName, relationship: relationships });
+        }
+    }
+    if (persons.length > 0) enriched.relatedPersons = persons;
+
+    return enriched;
 }
