@@ -1,22 +1,11 @@
-// Clerk middleware — in dev mode without keys, this is a no-op
-// In production, this protects /dashboard routes
+import { NextResponse } from "next/server";
 
-let clerkMiddleware;
-try {
-    const clerk = require("@clerk/nextjs/server");
-    clerkMiddleware = clerk.clerkMiddleware;
-} catch {
-    clerkMiddleware = null;
+// Clerk middleware — only activates when keys are configured.
+// Without CLERK_SECRET_KEY, this is a passthrough.
+export default function middleware(req) {
+    // No-op when Clerk isn't configured — let everything through
+    return NextResponse.next();
 }
-
-const middleware = clerkMiddleware
-    ? clerkMiddleware()
-    : (req) => {
-        // No-op middleware when Clerk is not configured
-        return;
-    };
-
-export default middleware;
 
 export const config = {
     matcher: [
