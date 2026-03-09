@@ -2,18 +2,32 @@
 
 import Link from "next/link";
 
-export default function Sidebar({ activeTab, onTabChange }) {
+export default function Sidebar({ activeTab, onTabChange, mobileOpen, onClose }) {
     return (
-        <aside className="fixed left-0 top-0 bottom-0 w-[260px] bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)] flex flex-col z-50">
+        <aside
+            className={`fixed left-0 top-0 bottom-0 w-[260px] bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)] flex flex-col z-50 transition-transform duration-200 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"
+                } lg:translate-x-0`}
+        >
             {/* Logo */}
-            <Link href="/" className="px-6 h-16 flex items-center gap-3 border-b border-[var(--color-border-subtle)] hover:bg-[var(--color-bg-card)] transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                    FP
-                </div>
-                <span className="text-lg font-semibold tracking-tight">
-                    Filing<span className="text-[var(--color-accent)]">Pulse</span>
-                </span>
-            </Link>
+            <div className="px-6 h-16 flex items-center justify-between border-b border-[var(--color-border-subtle)]">
+                <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                        FP
+                    </div>
+                    <span className="text-lg font-semibold tracking-tight">
+                        Filing<span className="text-[var(--color-accent)]">Pulse</span>
+                    </span>
+                </Link>
+                {/* Mobile close */}
+                <button
+                    onClick={onClose}
+                    className="lg:hidden btn btn-ghost btn-sm !p-1"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-1">
@@ -42,7 +56,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
 
             {/* Bottom section */}
             <div className="p-4 border-t border-[var(--color-border-subtle)]">
-                {/* Plan badge */}
                 <div className="card !p-3 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
                     <div className="flex items-center justify-between mb-2">
                         <span className="badge badge-accent text-[10px]">PRO</span>
@@ -62,8 +75,8 @@ function SidebarItem({ icon, label, active, onClick, badge }) {
         <button
             onClick={onClick}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${active
-                ? "bg-[var(--color-accent-glow)] text-[var(--color-accent)] border border-indigo-500/20"
-                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-card)] hover:text-[var(--color-text-primary)] border border-transparent"
+                    ? "bg-[var(--color-accent-glow)] text-[var(--color-accent)] border border-indigo-500/20"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-card)] hover:text-[var(--color-text-primary)] border border-transparent"
                 }`}
         >
             {icon}

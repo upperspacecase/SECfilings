@@ -65,9 +65,9 @@ export default function FilingsFeed() {
     return (
         <div className="space-y-6 fade-in">
             {/* Filters bar */}
-            <div className="card !p-4">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                    <div className="md:col-span-2">
+            <div className="card !p-3 sm:!p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div className="sm:col-span-2">
                         <input
                             type="text"
                             className="input"
@@ -110,11 +110,11 @@ export default function FilingsFeed() {
                 </div>
 
                 {/* Amount range */}
-                <div className="flex items-center gap-3 mt-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3">
                     <span className="text-xs text-[var(--color-text-muted)] shrink-0">Offering:</span>
                     <input
                         type="number"
-                        className="input !w-36"
+                        className="input !w-28 sm:!w-36"
                         placeholder="Min $"
                         value={minAmount}
                         onChange={(e) => setMinAmount(e.target.value)}
@@ -122,7 +122,7 @@ export default function FilingsFeed() {
                     <span className="text-[var(--color-text-muted)]">—</span>
                     <input
                         type="number"
-                        className="input !w-36"
+                        className="input !w-28 sm:!w-36"
                         placeholder="Max $"
                         value={maxAmount}
                         onChange={(e) => setMaxAmount(e.target.value)}
@@ -131,7 +131,7 @@ export default function FilingsFeed() {
             </div>
 
             {/* Results header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <span className="text-sm text-[var(--color-text-muted)]">
                     {total} filing{total !== 1 ? "s" : ""} found
                 </span>
@@ -175,11 +175,11 @@ export default function FilingsFeed() {
                                             <span className="badge badge-muted shrink-0">Fund</span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)]">
+                                    <div className="flex flex-wrap items-center gap-1 sm:gap-4 text-xs sm:text-sm text-[var(--color-text-secondary)]">
                                         <span>{filing.industryGroupType || filing.sicCode}</span>
-                                        <span>·</span>
+                                        <span className="hidden sm:inline">·</span>
                                         <span>{filing.stateOfIncorporation}</span>
-                                        <span>·</span>
+                                        <span className="hidden sm:inline">·</span>
                                         <span className="font-medium text-[var(--color-text-primary)]">
                                             {formatAmount(filing.totalOfferingAmount)}
                                         </span>
